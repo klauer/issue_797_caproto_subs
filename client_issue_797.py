@@ -30,9 +30,12 @@ SUPPORT:BPMFB:RB:BPM_P_GAIN_DR_FLOAT
 def main(pvnames: list[str]):
     shared_broadcaster = SharedBroadcaster()
     ctx = Context(broadcaster=shared_broadcaster)
+    saw_subs = {}
 
     def user_callback(sub: Subscription, command):
         print(f"{sub.pv}: {command}")
+        saw_subs.setdefault(sub.pv, 0)
+        saw_subs[sub.pv] += 1
 
     pvs: list[PV] = ctx.get_pvs(*pvnames)
     for pv in pvs:
@@ -56,7 +59,19 @@ def main(pvnames: list[str]):
     pv.circuit_manager.events_off()
     pv.circuit_manager.events_on()
 
-    time.sleep(5.0)
+    time.sleep(2.0)
+    ctx.disconnect()
+    time.sleep(1.0)
+
+    print("Done.\n\n")
+    print(f"Total PVs: {len(pvs)}")
+    print("Saw this many subscription callbacks:")
+
+    for pv, count in saw_subs.items():
+        print(pv.name, count)
+
+    print("Total PVs that had at least one subscription: ", len(saw_subs))
+    print("Total subscriptions: ", sum(count for count in saw_subs.values()))
 
 
 if __name__ == '__main__':
